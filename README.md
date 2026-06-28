@@ -4,6 +4,29 @@ AI-translate WordPress plugin/theme `.po` files as part of your build/release �
 
 It does **not** replace human translators where you want them — it produces solid first-pass translations (Claude) so locales ship populated; site owners refine per-site with **Loco Translate**.
 
+## Quick start — translate a new plugin or theme in 5 steps
+
+Prereqs (one-time on the machine): `brew install gettext`, plus `wp-cli` and the `claude` CLI (or `ANTHROPIC_API_KEY`).
+
+```bash
+cd /path/to/the-plugin
+
+# 1. install
+npm i -D @wbcom/i18n-ai          # run `npm init -y` first if there's no package.json
+
+# 2. ensure a .pot exists
+grunt makepot                    # or: wp i18n make-pot . languages/SLUG.pot --domain=SLUG
+
+# 3. add .wbcom-i18n.json (copy .wbcom-i18n.example.json, set "domain" to your text domain)
+
+# 4. translate
+npx wbcom-i18n all               # sync -> translate -> compile (.po + .mo + .json)
+
+# 5. commit languages/*.po + *.mo
+```
+
+Optional: add `require('@wbcom/i18n-ai/grunt')(grunt);` to `Gruntfile.js` for a `grunt i18n` task. Add languages by adding objects to `locales` in the config. Re-running later only translates **new/changed** strings (incremental, cheap).
+
 ## How it works
 
 ```
