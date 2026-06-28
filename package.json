@@ -1,6 +1,6 @@
 {
   "name": "@wbcom/i18n-ai",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AI-translate WordPress plugin/theme .po files: sync new strings (msgmerge), translate (Claude), validate placeholders, compile .mo + .json. Wires into grunt/release.",
   "keywords": [
     "wordpress",
