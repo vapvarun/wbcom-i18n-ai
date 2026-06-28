@@ -1,0 +1,25 @@
+{
+  "name": "@wbcom/i18n-ai",
+  "version": "0.1.0",
+  "description": "AI-fill WordPress plugin/theme .po translations: sync new strings (msgmerge), translate (Claude), validate placeholders, compile .mo + .json. Wires into grunt/release.",
+  "bin": {
+    "wbcom-i18n": "bin/wbcom-i18n.js"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "bin/",
+    "lib/",
+    "grunt/",
+    "README.md",
+    ".wbcom-i18n.example.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "gettext-parser": "^8.0.0"
+  },
+  "license": "GPL-2.0-or-later",
+  "author": "Wbcom Designs"
+}
