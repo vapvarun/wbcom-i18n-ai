@@ -1,7 +1,27 @@
 {
   "name": "@wbcom/i18n-ai",
-  "version": "0.1.0",
-  "description": "AI-fill WordPress plugin/theme .po translations: sync new strings (msgmerge), translate (Claude), validate placeholders, compile .mo + .json. Wires into grunt/release.",
+  "version": "0.1.1",
+  "description": "AI-translate WordPress plugin/theme .po files: sync new strings (msgmerge), translate (Claude), validate placeholders, compile .mo + .json. Wires into grunt/release.",
+  "keywords": [
+    "wordpress",
+    "i18n",
+    "l10n",
+    "translation",
+    "gettext",
+    "po",
+    "pot",
+    "ai",
+    "claude",
+    "grunt"
+  ],
+  "homepage": "https://github.com/vapvarun/wbcom-i18n-ai#readme",
+  "bugs": {
+    "url": "https://github.com/vapvarun/wbcom-i18n-ai/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vapvarun/wbcom-i18n-ai.git"
+  },
   "bin": {
     "wbcom-i18n": "bin/wbcom-i18n.js"
   },
@@ -19,6 +39,9 @@
   "type": "commonjs",
   "dependencies": {
     "gettext-parser": "^8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "GPL-2.0-or-later",
   "author": "Wbcom Designs"
