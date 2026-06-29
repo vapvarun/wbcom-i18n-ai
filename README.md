@@ -39,7 +39,17 @@ wbcom-i18n compile            # msgfmt -c → .mo  +  wp i18n make-json → JS/b
 
 - **Incremental** — `sync` (msgmerge) means each release only translates *new/changed* strings; existing translations are preserved.
 - **Crash-safe** — every translation's printf placeholders (`%s`, `%1$s`…) are validated against the source. A mismatch marks the entry `fuzzy`, so gettext won't compile it → the string **falls back to English instead of crashing**. No human review required for safety.
+- **Checkpointed** — progress is saved to the `.po` every `saveEvery` strings (default 200), so a pause/crash never loses work; re-running resumes from disk and re-spends no quota.
 - **Brand-aware** — `protect` terms (Jetonomy, Pro, WordPress…) and an optional `glossary` keep terminology consistent.
+
+## Cost & throughput (read before a big run)
+
+Each batch of `batch` strings (default **80**) is **one** model call. A 3,800-string plugin ≈ 48 calls per language.
+
+- **Engine `claude` (default)** uses your Claude **subscription** — no per-token bill, but it counts against your **plan usage limits**. Running many locales **in parallel** drains that budget fast (e.g. 10 locales × 48 calls back-to-back). Prefer **2–4 concurrent locales**, or run sequentially, for a large plugin.
+- **Engine `api`** (`--engine=api`, needs `ANTHROPIC_API_KEY`) bills per token (~$1–3 to seed a 2–4k-string plugin in 5 languages) but has no plan-usage ceiling — better for big parallel runs.
+- Raise `batch` (e.g. 100) to cut the call count further; lower it only if replies get truncated.
+- It's a **one-time** seed — later releases translate only new strings (pennies / a handful of calls).
 
 ## Install
 
