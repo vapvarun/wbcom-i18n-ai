@@ -1,11 +1,13 @@
 {
   "domain": "jetonomy",
+  "type": "plugin",
   "potFile": "languages/jetonomy.pot",
   "languagesDir": "languages",
   "engine": "claude",
   "model": "haiku",
   "batch": 40,
   "makeJson": true,
+  "makePhp": true,
   "protect": ["Jetonomy", "Pro", "WordPress", "BuddyPress", "REST", "API", "URL", "CSV", "AI"],
   "glossary": {
     "Space": "",
