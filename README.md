@@ -87,6 +87,27 @@ WordPress 6.5+ reads a sibling `{base}.l10n.php` **in preference to the `.mo`**.
 and you refresh only the `.mo`, every new translation is invisible on the site while the stale
 `.l10n.php` keeps serving. `compile` regenerates them via `wp i18n make-php`.
 
+### `protect` — proper nouns ONLY
+
+`protect` is **enforced**, not suggested: if a term appears in the source and not in the
+translation, the entry is flagged `fuzzy`, gettext leaves it out of the .mo, and the
+string falls back to English. That is the right outcome for a mangled brand name — and
+the wrong one for anything else.
+
+So list product and company names, nothing more:
+
+```json
+"protect": ["Reign", "Wbcom", "WooCommerce", "BuddyPress", "Dokan"]
+```
+
+Do **not** list technical acronyms (URL, API, REST, HTML, CSS) or ordinary words like
+"Pro". Many languages translate them correctly and idiomatically — Arabic renders "URL"
+as "رابط" — and enforcing them throws that good translation away in favour of English.
+Translating Reign we lost 11 correct Arabic strings that way before trimming the list.
+
+The prompt still asks the model to leave technical terms alone; it just isn't a hard
+failure when a language has a better word.
+
 ### `batch`
 
 One model call per `batch` strings. For UI strings (short, static, independent) 400–500 per call
