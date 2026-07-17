@@ -59,9 +59,39 @@ npm i -D @wbcom/i18n-ai          # plus system tools: gettext (msginit/msgmerge/
 
 Requirements: Node ≥18, GNU **gettext**, **wp-cli** (for `make-json`), and an engine — the **`claude` CLI** (default, no API key) or `ANTHROPIC_API_KEY` (`--engine=api`).
 
-## Configure — `.wbcom-i18n.json` (plugin root)
+## Configure — `.wbcom-i18n.json` (plugin/theme root)
 
 See `.wbcom-i18n.example.json`. Per-locale `model` lets you use Haiku for European languages and Sonnet for Korean/CJK.
+
+### `type` — set this correctly or the whole run is dead weight
+
+WordPress looks for a **different filename** depending on what it is loading:
+
+| `type`             | file it reads                  | loader                     |
+|--------------------|--------------------------------|----------------------------|
+| `plugin` (default) | `languages/{domain}-{locale}.mo` | `load_plugin_textdomain()` |
+| `theme`            | `languages/{locale}.mo`          | `load_theme_textdomain()`  |
+
+Emitting the plugin form for a theme produces files WordPress **silently never loads** — no
+error, no warning, just English. It also means `sync` won't find the existing `{locale}.po`,
+so it runs `msginit` instead of `msgmerge` and re-translates every string from scratch,
+discarding the translations you already have.
+
+```json
+{ "domain": "reign", "type": "theme", "potFile": "languages/reign.pot" }
+```
+
+### `makePhp` (default `true`)
+
+WordPress 6.5+ reads a sibling `{base}.l10n.php` **in preference to the `.mo`**. If one exists
+and you refresh only the `.mo`, every new translation is invisible on the site while the stale
+`.l10n.php` keeps serving. `compile` regenerates them via `wp i18n make-php`.
+
+### `batch`
+
+One model call per `batch` strings. For UI strings (short, static, independent) 400–500 per call
+is comfortable and cuts a large run several-fold — e.g. 8,454 strings is ~19 calls at 450 vs ~106
+at the default 80. Lower it only if replies come back truncated.
 
 ## CLI
 
