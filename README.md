@@ -40,7 +40,14 @@ wbcom-i18n compile            # msgfmt -c → .mo  +  wp i18n make-json → JS/b
 - **Incremental** — `sync` (msgmerge) means each release only translates *new/changed* strings; existing translations are preserved.
 - **Crash-safe** — every translation's printf placeholders (`%s`, `%1$s`…) are validated against the source. A mismatch marks the entry `fuzzy`, so gettext won't compile it → the string **falls back to English instead of crashing**. No human review required for safety.
 - **Checkpointed** — progress is saved to the `.po` every `saveEvery` strings (default 200), so a pause/crash never loses work; re-running resumes from disk and re-spends no quota.
-- **Brand-aware** — `protect` terms (Jetonomy, Pro, WordPress…) and an optional `glossary` keep terminology consistent.
+- **Brand-aware** — `protect` terms (Jetonomy, Pro, WordPress…) are checked, not just requested; all-capital acronyms (REST, API) match in capitals only.
+- **Context, not bare strings (0.2)** — every string goes to the model with its `msgctxt`, the developer's `translators:` comment, its source file and its audience (admin / member / email, from the file path), plus a product `brief`. A label, a button and a sentence get translated as what they are.
+- **Per-locale glossary (0.2)** — each core term carries what it means and the word to use in each language (see below). The batch gets only the terms it contains.
+- **Reviewed (0.2)** — a second model pass checks each new translation against the rules (meaning in context, kind of text, glossary, register, locale conventions, length) and corrects it. Only then is it written.
+- **More gates (0.2)** — besides placeholders and protected names: dropped or added HTML tags, and sentence-case UI text left in English, fall back to English. Glossary misses and Title Case strings kept in English are listed in the run report for a person to check.
+- **Plurals done right (0.2)** — all plural forms of an entry are requested together, so a language with three forms (Russian, Polish) gets three different strings.
+
+The rules come from the Wbcom translation quality guideline (`wp-i18n` skill, `references/translation-quality.md`), written after customers reported translations made without context as bad: a verb where a label needed a noun, a wrong word for a core term, one term rendered three ways.
 
 ## Cost & throughput (read before a big run)
 
@@ -110,9 +117,32 @@ failure when a language has a better word.
 
 ### `batch`
 
-One model call per `batch` strings. For UI strings (short, static, independent) 400–500 per call
-is comfortable and cuts a large run several-fold — e.g. 8,454 strings is ~19 calls at 450 vs ~106
-at the default 80. Lower it only if replies come back truncated.
+One model call per `batch` entries (default 40), plus one review call. Each entry now carries
+its context, note, file and audience, so batches are smaller than in 0.1; raise it only if
+replies stay complete.
+
+### `brief`, `glossary`, `glossaryFile` (0.2)
+
+```json
+{
+  "brief": "Jetonomy is a WordPress community forum plugin. Members join spaces ...",
+  "glossary": {
+    "space": { "meaning": "a community area holding topics, like a subforum", "de_DE": "Bereich", "fr_FR": "espace" },
+    "trust level": { "meaning": "a member's earned level", "de_DE": "Vertrauensstufe", "fr_FR": "niveau de confiance" }
+  }
+}
+```
+
+A family (Free + Pro) keeps one file and points both configs at it with
+`"glossaryFile": "../plugin/.wbcom-i18n-glossary.json"` (the file holds `brief` and `glossary`).
+Choose renderings from what Discourse, bbPress, BuddyPress and WordPress core already use in
+each language. A missing locale value means "not decided": the model picks the established word
+and keeps it consistent. The 0.1 flat form `{ "Space": "Bereich" }` still works.
+
+### `model`, `review`
+
+`model` defaults to `sonnet` (0.1 used `haiku`); `review` defaults to `true`. Per locale you may
+set `model` and `reviewModel`.
 
 ## CLI
 
@@ -122,7 +152,12 @@ wbcom-i18n translate --locales=de_DE # one locale
 wbcom-i18n sync                      # just merge new strings
 wbcom-i18n compile                   # just build .mo + .json
 wbcom-i18n all --engine=api --model=sonnet
+wbcom-i18n all --review-all          # re-review EVERY entry (old text sent as a starting point)
+wbcom-i18n translate --locales=de_DE --review-all --only='Trust Level'   # spot-test some strings
 ```
+
+Re-review a catalogue that is known to be bad with `--review-all`; later releases go back to the
+default incremental run.
 
 ## Grunt
 

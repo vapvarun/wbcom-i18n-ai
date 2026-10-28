@@ -22,7 +22,12 @@ const USAGE = `wbcom-i18n <command> [options]
     --config=<file>     config file (default .wbcom-i18n.json)
     --locales=de_DE,..  only these locales
     --engine=claude|api override engine
-    --model=haiku|...   override default model
+    --model=sonnet|...  override the translate model (default sonnet)
+    --review-all        re-review every entry, not only empty/fuzzy ones; the
+                        current translation is sent as a starting point
+    --no-review         skip the review step (not recommended)
+    --limit=<n>         translate at most n entries per locale (testing)
+    --only=<regex>      only entries whose English matches (testing)
 `;
 
 async function main() {
@@ -34,6 +39,9 @@ async function main() {
   if (typeof args.engine === 'string') cfg.engine = args.engine;
   if (typeof args.model === 'string') cfg.model = args.model;
   if (args.limit) cfg.limit = parseInt(String(args.limit), 10);
+  if (args['review-all']) cfg.reviewAll = true;
+  if (typeof args.only === 'string') cfg.only = args.only;
+  if (args['no-review']) cfg.review = false;
   if (!cfg.locales.length) throw new Error('no locales selected');
 
   if (cmd === 'sync' || cmd === 'all') { log('▶ sync'); syncLocales(cfg, log); }
