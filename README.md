@@ -141,7 +141,7 @@ and keeps it consistent. The 0.1 flat form `{ "Space": "Bereich" }` still works.
 
 ### `model`, `review`
 
-`model` defaults to `sonnet` (0.1 used `haiku`); `review` defaults to `true`. Per locale you may
+`model` defaults to `haiku` (Haiku 5.5: with context and the glossary it matched Sonnet; tested at batch 40, where the review step caught 3x more than at 200); `review` defaults to `true`. Per locale you may
 set `model` and `reviewModel`.
 
 ## CLI

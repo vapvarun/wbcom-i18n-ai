@@ -22,7 +22,7 @@ const USAGE = `wbcom-i18n <command> [options]
     --config=<file>     config file (default .wbcom-i18n.json)
     --locales=de_DE,..  only these locales
     --engine=claude|api override engine
-    --model=sonnet|...  override the translate model (default sonnet)
+    --model=haiku|...   override the translate model (default haiku)
     --review-all        re-review every entry, not only empty/fuzzy ones; the
                         current translation is sent as a starting point
     --no-review         skip the review step (not recommended)
