@@ -4,6 +4,8 @@ AI-translate WordPress plugin/theme `.po` files as part of your build/release �
 
 It does **not** replace human translators where you want them — it produces solid first-pass translations (Claude) so locales ship populated; site owners refine per-site with **Loco Translate**.
 
+> **The standard and the runbook:** [`docs/translation-standard.md`](docs/translation-standard.md) (rules, glossary, model, quality bar) and [`AGENTS.md`](AGENTS.md) (step-by-step, for Claude Code, Cursor or a person). Read them before a first run.
+
 ## Quick start — translate a new plugin or theme in 5 steps
 
 Prereqs (one-time on the machine): `brew install gettext`, plus `wp-cli` and the `claude` CLI (or `ANTHROPIC_API_KEY`).
@@ -51,12 +53,12 @@ The rules come from the Wbcom translation quality guideline (`wp-i18n` skill, `r
 
 ## Cost & throughput (read before a big run)
 
-Each batch of `batch` strings (default **80**) is **one** model call. A 3,800-string plugin ≈ 48 calls per language.
+Each batch of 40 strings is two calls: translate and review. Plan the run before any call (see `AGENTS.md` step 3).
 
-- **Engine `claude` (default)** uses your Claude **subscription** — no per-token bill, but it counts against your **plan usage limits**. Running many locales **in parallel** drains that budget fast (e.g. 10 locales × 48 calls back-to-back). Prefer **2–4 concurrent locales**, or run sequentially, for a large plugin.
-- **Engine `api`** (`--engine=api`, needs `ANTHROPIC_API_KEY`) bills per token (~$1–3 to seed a 2–4k-string plugin in 5 languages) but has no plan-usage ceiling — better for big parallel runs.
-- Raise `batch` (e.g. 100) to cut the call count further; lower it only if replies get truncated.
-- It's a **one-time** seed — later releases translate only new strings (pennies / a handful of calls).
+- **Engine `claude` (default)** runs on the Claude **subscription** with `claude -p`. **Engine `cursor`** (`--engine=cursor --model=claude-haiku-5-5-medium`) runs on the Cursor subscription with `cursor-agent -p`. Both make lean calls with no editor session, tools or project files; a version without that loaded about 84k tokens per call.
+- About 12 seconds per call on `claude`, 22 on `cursor`. Run about 5 languages side by side: same usage, a fifth of the time.
+- `--review-all` re-checks every entry. Use it once for a catalogue known to be bad, never as routine; later releases translate only new strings.
+- Engine `api` (needs `ANTHROPIC_API_KEY`) exists but Wbcom runs on subscriptions.
 
 ## Install
 
@@ -151,7 +153,9 @@ wbcom-i18n all                       # sync → translate → compile, all local
 wbcom-i18n translate --locales=de_DE # one locale
 wbcom-i18n sync                      # just merge new strings
 wbcom-i18n compile                   # just build .mo + .json
-wbcom-i18n all --engine=api --model=sonnet
+wbcom-i18n translate --engine=cursor --model=claude-haiku-5-5-medium   # on the Cursor subscription
+wbcom-i18n check                     # quality check: PASS/REVIEW/FAIL per locale + 40-string sample sheets
+wbcom-i18n check --core=<site>/wp-content/languages   # also compare strings WordPress core translates
 wbcom-i18n all --review-all          # re-review EVERY entry (old text sent as a starting point)
 wbcom-i18n translate --locales=de_DE --review-all --only='Trust Level'   # spot-test some strings
 ```
