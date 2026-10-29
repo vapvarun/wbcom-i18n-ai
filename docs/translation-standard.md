@@ -29,7 +29,7 @@ Root causes: strings went out without their comment, context or source file; the
 6. **One register per language.** It is set per locale in the config (for example `informal (du)`, `polite (です/ます)`) and is the same for admin and member text. Never mix du/Sie or tu/vous.
 7. **Follow the language's interface conventions.** German buttons use the infinitive ("Speichern", "Vertrauensstufe ändern"). French uses a non-breaking space before `: ; ! ?` and « ». German quotes are „ ". Japanese and Chinese use full-width punctuation.
 8. **Keep short labels short.** Buttons, tabs and chips sit in tight space on a 390px phone screen. One or two English words become one or two words.
-9. **Owner-renamable nouns arrive as placeholders.** Some plugins let the site owner rename core nouns (Jetonomy: space, topic, reply, member, category), so the code passes them in as `%s`. The translator cannot know the word's gender or case, so the sentence must not need agreement with it ("%s gelöscht.", "Élément supprimé : %s"). Never hard-code a gendered article before the placeholder.
+9. **Owner-renamable nouns arrive as placeholders, and the placeholder is the noun.** Some plugins let the site owner rename core nouns (Jetonomy: space, topic, reply, member, category), so the code passes them in as `%s`. Never write the noun as well: "einen Bereich (%s)" or "un élément (%s)" reads "Bereich (Bereich)" on every site that kept the default. The translator cannot know the word's gender or case, so put the placeholder where it needs no article or ending: at the start of a label or sentence, after a colon, or as a plain noun ("Gesperrt in %s", "Nur %s auf Einladung", "Tu es déjà %1$s de %2$s"). Then read the sentence with the default glossary word in place of `%s`: it must read as natural text. (`wbcom-i18n check` flags the bracket pattern as `label-nouns`.)
 10. **Placeholders, tokens, HTML and protected names stay exactly as they are** (`%s`, `%1$s`, `{name}`, `<a href="%s">`, the product name, WordPress). Move them for word order; never drop, add or renumber them.
 11. **Plurals get every form the language has** (`nplurals`), each with its placeholder. Japanese, Korean and Chinese have one form; Russian has three.
 12. **Never copy the English** unless the whole string is a brand or protected name. A copied string looks done and shows English forever.
@@ -102,6 +102,7 @@ The automatic gates catch broken placeholders, HTML and copied English, never a 
 | placeholders | every shipped string keeps its placeholders | any mismatch |
 | plural-forms | every form filled | any form empty |
 | glossary | strings with a term use its rendering | a term is missing in over 30% of 10+ strings (over 10% is REVIEW) |
+| label-nouns | a noun written next to its own label placeholder, "Bereich (%s)" | more than 5 strings |
 | register | the form of address not chosen (Sie/du, vous/tu, usted/tú, u/je, Lei/tu, tu/você) | more than 2 strings |
 | core-words | strings WordPress core also has match core's translation | listed as REVIEW |
 
