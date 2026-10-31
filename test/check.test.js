@@ -69,14 +69,16 @@ test('config: the template and languages folder must stay inside the repo', () =
   assert.throws(load({ languagesDir: '../elsewhere' }), /languagesDir/);
   fs.symlinkSync(os.tmpdir(), path.join(dir, 'out'));
   assert.throws(load({ potFile: 'out/x.pot' }), /potFile/);
+  fs.symlinkSync(path.join(os.tmpdir(), 'wbcom-absent.pot'), path.join(dir, 'dangling.pot'));
+  assert.throws(load({ potFile: 'dangling.pot' }), /dangling/);
 });
 
-test('makePot: wp runs outside the repo, so its wp-cli.yml is not loaded', () => {
+test('makePot: wp runs from the filesystem root, so no wp-cli.yml is loaded', () => {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'wp-')));
   const log = path.join(dir, 'cwd.txt');
   const fake = path.join(dir, 'fake-wp');
   fs.writeFileSync(fake, `#!/bin/sh\npwd > "${log}"\n`, { mode: 0o755 });
   process.env.WP_CLI = fake;
   try { makePot({ domain: 'x', cwd: dir }, path.join(dir, 'o.pot')); } finally { delete process.env.WP_CLI; }
-  assert.notEqual(fs.readFileSync(log, 'utf8').trim(), dir);
+  assert.equal(fs.readFileSync(log, 'utf8').trim(), path.parse(dir).root);
 });
