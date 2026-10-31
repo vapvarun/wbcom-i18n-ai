@@ -5,6 +5,7 @@ const { syncLocales } = require('../lib/sync');
 const { translatePo } = require('../lib/translate');
 const { compileLocales } = require('../lib/compile');
 const { checkPo } = require('../lib/check');
+const { makePot, templateCheck } = require('../lib/pot');
 const fs = require('fs');
 
 const log = (m) => console.log(m);
@@ -19,7 +20,7 @@ function parseArgs(argv) {
 }
 
 const USAGE = `wbcom-i18n <command> [options]
-  Commands: sync | translate | compile | all (default) | check
+  Commands: sync (rebuilds the template, then merges it) | translate | compile | all (default) | check
   Options:
     --config=<file>     config file (default .wbcom-i18n.json)
     --locales=de_DE,..  only these locales
@@ -49,14 +50,21 @@ async function main() {
   if (args['no-review']) cfg.review = false;
   if (!cfg.locales.length) throw new Error('no locales selected');
 
-  if (cmd === 'sync' || cmd === 'all') { log('▶ sync'); syncLocales(cfg, log); }
+  if (cmd === 'sync' || cmd === 'all') {
+    log('▶ template');
+    const warnings = makePot(cfg, cfg.potFile);
+    log(`  rebuilt ${cfg.potFile} (${warnings.length} translator-comment warnings)`);
+    for (const w of warnings) log(`  ${w}`);
+    log('▶ sync');
+    syncLocales(cfg, log);
+  }
   if (cmd === 'translate' || cmd === 'all') {
     log('▶ translate');
     for (const loc of cfg.locales) await translatePo(loc.poFile, loc, cfg, log);
   }
   if (cmd === 'compile' || cmd === 'all') { log('▶ compile'); compileLocales(cfg, log); }
   if (cmd === 'check') {
-    const opts = { core: typeof args.core === 'string' ? args.core : '', out: typeof args.out === 'string' ? args.out : '' };
+    const opts = { core: typeof args.core === 'string' ? args.core : '', out: typeof args.out === 'string' ? args.out : '', template: templateCheck(cfg) };
     const results = cfg.locales.filter((l) => fs.existsSync(l.poFile)).map((l) => checkPo(l.poFile, l, cfg, opts));
     if (args.json) { process.stdout.write(JSON.stringify(results, null, 2) + '\n'); }
     else {

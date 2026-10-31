@@ -98,6 +98,7 @@ The automatic gates catch broken placeholders, HTML and copied English, never a 
 
 | Check | What it looks at | Fails when |
 |---|---|---|
+| template | the committed .pot against a fresh build from the code | the code has strings the .pot lacks |
 | coverage | translated and not fuzzy | under 95% |
 | placeholders | every shipped string keeps its placeholders | any mismatch |
 | plural-forms | every form filled | any form empty |

@@ -34,9 +34,16 @@ Create `.wbcom-i18n-glossary.json` in the Free repo with a `brief` and about 30 
 
 ## 3. Plan and post it before any model call
 
+Rebuild the template from the current code and merge it first. Otherwise the plan, the translation and the coverage figure all describe old text, and everything added since the last rebuild stays in English in every language.
+
 ```bash
+wbcom-i18n sync
 for f in languages/*.po; do printf "%s " "$f"; msgfmt --statistics -o /dev/null "$f"; done
 ```
+
+`sync` needs WP-CLI. It excludes `dist`, `build` and `libs` on top of make-pot's defaults; a plugin with other generated folders sets `potExclude` in its config.
+
+`sync` prints any translator-comment warnings. Fix them in the code, because a missing or conflicting comment is what translators work from, then run `sync` again until it reports 0.
 
 Post on the card:
 - strings needing work per language
@@ -49,7 +56,6 @@ Wait for the owner's OK if the plan is above about 500 calls.
 ## 4. Pilot one small language
 
 ```bash
-wbcom-i18n sync
 wbcom-i18n translate --locales=<one locale>        # add --review-all for an existing bad catalogue
 wbcom-i18n check --locales=<that locale>
 ```
@@ -74,6 +80,7 @@ Then the next group. Same tokens as one at a time, a fifth of the time. Each lan
 wbcom-i18n check --core=<site>/wp-content/languages
 ```
 
+- **FAIL on `template`:** the code has strings the template lacks. Run `wbcom-i18n sync`, translate the new entries, and check again.
 - **FAIL:** fix it. For a glossary line, fix the strings or, if the rendering itself is wrong, fix the glossary and re-run that language with `--review-all`.
 - **REVIEW:** look at each example and decide. Inflected words and homonyms are often fine.
 - Mark the sample sheets for German, French and Japanese: OK or WRONG with a reason, for each of the 40 rows.
