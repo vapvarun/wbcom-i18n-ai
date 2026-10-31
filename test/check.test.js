@@ -71,7 +71,7 @@ test('config: the template and languages folder must stay inside the repo', () =
   assert.throws(load({ potFile: 'out/x.pot' }), /potFile/);
   fs.symlinkSync(path.join(os.tmpdir(), 'wbcom-absent.pot'), path.join(dir, 'dangling.pot'));
   assert.throws(load({ potFile: 'dangling.pot' }), /dangling/);
-  assert.throws(load({ locales: [{ locale: '../../evil' }] }), /locale file/);
+  assert.throws(load({ locales: [{ locale: '/../../../evil' }] }), /locale file/);
   fs.mkdirSync(path.join(dir, 'languages'));
   fs.symlinkSync(os.tmpdir(), path.join(dir, 'languages', 'x-de_DE.mo'));
   assert.throws(load({ locales: [{ locale: 'de_DE' }] }), /locale file/);
