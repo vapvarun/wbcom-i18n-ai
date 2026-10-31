@@ -4,6 +4,8 @@ AI-translate WordPress plugin/theme `.po` files as part of your build/release �
 
 It does **not** replace human translators where you want them — it produces solid first-pass translations (Claude) so locales ship populated; site owners refine per-site with **Loco Translate**.
 
+> **The standard and the runbook:** [`docs/translation-standard.md`](docs/translation-standard.md) (rules, glossary, model, quality bar) and [`AGENTS.md`](AGENTS.md) (step-by-step, for Claude Code, Cursor or a person). Read them before a first run.
+
 ## Quick start — translate a new plugin or theme in 5 steps
 
 Prereqs (one-time on the machine): `brew install gettext`, plus `wp-cli` and the `claude` CLI (or `ANTHROPIC_API_KEY`).
@@ -40,16 +42,23 @@ wbcom-i18n compile            # msgfmt -c → .mo  +  wp i18n make-json → JS/b
 - **Incremental** — `sync` (msgmerge) means each release only translates *new/changed* strings; existing translations are preserved.
 - **Crash-safe** — every translation's printf placeholders (`%s`, `%1$s`…) are validated against the source. A mismatch marks the entry `fuzzy`, so gettext won't compile it → the string **falls back to English instead of crashing**. No human review required for safety.
 - **Checkpointed** — progress is saved to the `.po` every `saveEvery` strings (default 200), so a pause/crash never loses work; re-running resumes from disk and re-spends no quota.
-- **Brand-aware** — `protect` terms (Jetonomy, Pro, WordPress…) and an optional `glossary` keep terminology consistent.
+- **Brand-aware** — `protect` terms (Jetonomy, Pro, WordPress…) are checked, not just requested; all-capital acronyms (REST, API) match in capitals only.
+- **Context, not bare strings (0.2)** — every string goes to the model with its `msgctxt`, the developer's `translators:` comment, its source file and its audience (admin / member / email, from the file path), plus a product `brief`. A label, a button and a sentence get translated as what they are.
+- **Per-locale glossary (0.2)** — each core term carries what it means and the word to use in each language (see below). The batch gets only the terms it contains.
+- **Reviewed (0.2)** — a second model pass checks each new translation against the rules (meaning in context, kind of text, glossary, register, locale conventions, length) and corrects it. Only then is it written.
+- **More gates (0.2)** — besides placeholders and protected names: dropped or added HTML tags, and sentence-case UI text left in English, fall back to English. Glossary misses and Title Case strings kept in English are listed in the run report for a person to check.
+- **Plurals done right (0.2)** — all plural forms of an entry are requested together, so a language with three forms (Russian, Polish) gets three different strings.
+
+The rules come from the Wbcom translation quality guideline (`wp-i18n` skill, `references/translation-quality.md`), written after customers reported translations made without context as bad: a verb where a label needed a noun, a wrong word for a core term, one term rendered three ways.
 
 ## Cost & throughput (read before a big run)
 
-Each batch of `batch` strings (default **80**) is **one** model call. A 3,800-string plugin ≈ 48 calls per language.
+Each batch of 40 strings is two calls: translate and review. Plan the run before any call (see `AGENTS.md` step 3).
 
-- **Engine `claude` (default)** uses your Claude **subscription** — no per-token bill, but it counts against your **plan usage limits**. Running many locales **in parallel** drains that budget fast (e.g. 10 locales × 48 calls back-to-back). Prefer **2–4 concurrent locales**, or run sequentially, for a large plugin.
-- **Engine `api`** (`--engine=api`, needs `ANTHROPIC_API_KEY`) bills per token (~$1–3 to seed a 2–4k-string plugin in 5 languages) but has no plan-usage ceiling — better for big parallel runs.
-- Raise `batch` (e.g. 100) to cut the call count further; lower it only if replies get truncated.
-- It's a **one-time** seed — later releases translate only new strings (pennies / a handful of calls).
+- **Engine `claude` (default)** runs on the Claude **subscription** with `claude -p`. **Engine `cursor`** (`--engine=cursor --model=claude-haiku-5-5-medium`) runs on the Cursor subscription with `cursor-agent -p`. Both make lean calls with no editor session, tools or project files; a version without that loaded about 84k tokens per call.
+- About 12 seconds per call on `claude`, 22 on `cursor`. Run about 5 languages side by side: same usage, a fifth of the time.
+- `--review-all` re-checks every entry. Use it once for a catalogue known to be bad, never as routine; later releases translate only new strings.
+- Engine `api` (needs `ANTHROPIC_API_KEY`) exists but Wbcom runs on subscriptions.
 
 ## Install
 
@@ -110,9 +119,32 @@ failure when a language has a better word.
 
 ### `batch`
 
-One model call per `batch` strings. For UI strings (short, static, independent) 400–500 per call
-is comfortable and cuts a large run several-fold — e.g. 8,454 strings is ~19 calls at 450 vs ~106
-at the default 80. Lower it only if replies come back truncated.
+One model call per `batch` entries (default 40), plus one review call. Each entry now carries
+its context, note, file and audience, so batches are smaller than in 0.1; raise it only if
+replies stay complete.
+
+### `brief`, `glossary`, `glossaryFile` (0.2)
+
+```json
+{
+  "brief": "Jetonomy is a WordPress community forum plugin. Members join spaces ...",
+  "glossary": {
+    "space": { "meaning": "a community area holding topics, like a subforum", "de_DE": "Bereich", "fr_FR": "espace" },
+    "trust level": { "meaning": "a member's earned level", "de_DE": "Vertrauensstufe", "fr_FR": "niveau de confiance" }
+  }
+}
+```
+
+A family (Free + Pro) keeps one file and points both configs at it with
+`"glossaryFile": "../plugin/.wbcom-i18n-glossary.json"` (the file holds `brief` and `glossary`).
+Choose renderings from what Discourse, bbPress, BuddyPress and WordPress core already use in
+each language. A missing locale value means "not decided": the model picks the established word
+and keeps it consistent. The 0.1 flat form `{ "Space": "Bereich" }` still works.
+
+### `model`, `review`
+
+`model` defaults to `haiku` (Haiku 5.5: with context and the glossary it matched Sonnet; tested at batch 40, where the review step caught 3x more than at 200); `review` defaults to `true`. Per locale you may
+set `model` and `reviewModel`.
 
 ## CLI
 
@@ -121,8 +153,15 @@ wbcom-i18n all                       # sync → translate → compile, all local
 wbcom-i18n translate --locales=de_DE # one locale
 wbcom-i18n sync                      # just merge new strings
 wbcom-i18n compile                   # just build .mo + .json
-wbcom-i18n all --engine=api --model=sonnet
+wbcom-i18n translate --engine=cursor --model=claude-haiku-5-5-medium   # on the Cursor subscription
+wbcom-i18n check                     # quality check: PASS/REVIEW/FAIL per locale + 40-string sample sheets
+wbcom-i18n check --core=<site>/wp-content/languages   # also compare strings WordPress core translates
+wbcom-i18n all --review-all          # re-review EVERY entry (old text sent as a starting point)
+wbcom-i18n translate --locales=de_DE --review-all --only='Trust Level'   # spot-test some strings
 ```
+
+Re-review a catalogue that is known to be bad with `--review-all`; later releases go back to the
+default incremental run.
 
 ## Grunt
 
