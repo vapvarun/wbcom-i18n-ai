@@ -5,7 +5,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { checkPo, AVOID } = require('../lib/check');
-const { templateCheck } = require('../lib/pot');
+const { templateCheck, makePot } = require('../lib/pot');
+const { loadConfig } = require('../lib/config');
 
 const po = (rows) => [
   'msgid ""', 'msgstr ""', '"Plural-Forms: nplurals=2; plural=(n != 1);\\n"', '',
@@ -57,4 +58,25 @@ test('check: the template result is reported and fails the locale', () => {
   const r = checkPo(file, { locale: 'de_DE' }, { domain: 'x' }, { out: dir, template });
   assert.equal(r.status, 'FAIL');
   assert.equal(r.checks[0].name, 'template');
+});
+
+test('config: the template and languages folder must stay inside the repo', () => {
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-')));
+  const load = (c) => { fs.writeFileSync(path.join(dir, 'c.json'), JSON.stringify({ domain: 'x', ...c })); return () => loadConfig(dir, 'c.json'); };
+  assert.ok(load({})().potFile.endsWith('languages/x.pot'));
+  assert.throws(load({ potFile: '../evil.pot' }), /potFile/);
+  assert.throws(load({ potFile: 'languages/x.php' }), /potFile/);
+  assert.throws(load({ languagesDir: '../elsewhere' }), /languagesDir/);
+  fs.symlinkSync(os.tmpdir(), path.join(dir, 'out'));
+  assert.throws(load({ potFile: 'out/x.pot' }), /potFile/);
+});
+
+test('makePot: wp runs outside the repo, so its wp-cli.yml is not loaded', () => {
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'wp-')));
+  const log = path.join(dir, 'cwd.txt');
+  const fake = path.join(dir, 'fake-wp');
+  fs.writeFileSync(fake, `#!/bin/sh\npwd > "${log}"\n`, { mode: 0o755 });
+  process.env.WP_CLI = fake;
+  try { makePot({ domain: 'x', cwd: dir }, path.join(dir, 'o.pot')); } finally { delete process.env.WP_CLI; }
+  assert.notEqual(fs.readFileSync(log, 'utf8').trim(), dir);
 });
